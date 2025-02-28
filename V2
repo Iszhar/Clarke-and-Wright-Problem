@@ -1,0 +1,56 @@
+import itertools
+import numpy as np
+
+def calculate_savings(distance_matrix, depot_index=0):
+    num_nodes = len(distance_matrix)
+    savings_list = []
+    
+    for i, j in itertools.combinations(range(1, num_nodes), 2):  # Exclude depot
+        saving = (distance_matrix[i][depot_index] + distance_matrix[j][depot_index] 
+                  - distance_matrix[i][j])
+        savings_list.append((i, j, saving))
+    
+    savings_list.sort(key=lambda x: x[2], reverse=True)
+    return savings_list
+
+def clarke_wright_savings(distance_matrix, vehicle_capacity, demands):
+    depot_index = 0
+    num_nodes = len(distance_matrix)
+    routes = {i: [i] for i in range(1, num_nodes)}  # Each node starts as its own route
+    route_loads = {i: demands[i] for i in range(1, num_nodes)}
+    savings_list = calculate_savings(distance_matrix, depot_index)
+    
+    for i, j, _ in savings_list:
+        route_i = None
+        route_j = None
+        
+        for route in routes.values():
+            if route[0] == i or route[-1] == i:
+                route_i = route
+            if route[0] == j or route[-1] == j:
+                route_j = route
+        
+        if route_i and route_j and route_i != route_j:
+            combined_load = route_loads[route_i[0]] + route_loads[route_j[0]]
+            
+            if combined_load <= vehicle_capacity:
+                route_i.extend(route_j)
+                del routes[route_j[0]]
+                route_loads[route_i[0]] = combined_load
+    
+    final_routes = [[depot_index] + route + [depot_index] for route in routes.values()]
+    return final_routes
+
+# Example usage
+distance_matrix = [
+    [0, 10, 15, 20],
+    [10, 0, 35, 25],
+    [15, 35, 0, 30],
+    [20, 25, 30, 0]
+]
+
+demands = [0, 10, 15, 5]  # Node 0 is the depot
+vehicle_capacity = 30
+
+routes = clarke_wright_savings(distance_matrix, vehicle_capacity, demands)
+print("Optimized Routes:", routes)
